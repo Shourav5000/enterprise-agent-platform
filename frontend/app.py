@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import requests
 
@@ -6,6 +7,9 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide"
 )
+
+# Dynamic backend URL configuration for production and local environments
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 st.title("🤖 Enterprise Autonomous Incident & Remediation Engine")
 st.markdown("Multi-agent orchestration platform powered by LangGraph, FastAPI, and Anthropic Claude.")
@@ -29,7 +33,7 @@ if st.sidebar.button("Run Agent Workflow"):
         
         with st.spinner("Executing multi-agent workflow (Triage ➔ Remediation ➔ QA ➔ HITL)..."):
             try:
-                response = requests.post("http://127.0.0.1:8000/api/incidents/triage", json=payload)
+                response = requests.post(f"{BACKEND_URL}/api/incidents/triage", json=payload)
                 if response.status_code == 200:
                     data = response.json()["result"]
                     st.session_state["last_result"] = data
@@ -37,7 +41,7 @@ if st.sidebar.button("Run Agent Workflow"):
                 else:
                     st.error(f"API Error: {response.text}")
             except requests.exceptions.ConnectionError:
-                st.error("Could not connect to FastAPI backend. Ensure uvicorn is running on port 8000.")
+                st.error(f"Could not connect to FastAPI backend at {BACKEND_URL}.")
 
 # Main display area for results
 if "last_result" in st.session_state:
@@ -64,7 +68,7 @@ if "last_result" in st.session_state:
         st.warning("This patch requires explicit operator sign-off before production deployment.")
         c1, c2 = st.columns(2)
         if c1.button("✅ Approve & Deploy"):
-            approval_res = requests.post(f"http://127.0.0.1:8000/api/incidents/approve?incident_id={res.get('incident_id')}&approved=true")
+            approval_res = requests.post(f"{BACKEND_URL}/api/incidents/approve?incident_id={res.get('incident_id')}&approved=true")
             st.success("Patch approved and deployed to production!")
         if c2.button("❌ Reject Patch"):
             st.error("Patch rejected by operator.")
